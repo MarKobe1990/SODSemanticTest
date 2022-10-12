@@ -20,13 +20,19 @@ def rebuild_dataset(dataset_dic, model):
     date_str = datetime.datetime.now().strftime('%Y-%m-%d-%H:%M')
     save_dir = "../testResults/" + date_str
     dataset_writer = SummaryWriter(save_dir + "/log", comment="log")
-
+    f = open("../myDocument/imageNet1k-class.txt")
+    class_list = f.readlines()
     for idx in pbar:
         name, image_path, depth_path, gt_path, img_array = data_set.load_data(idx)
         result = inference_model(model, img_array)
+        for class_info in class_list:
+            class_info_list = class_info.split(" ")
+            if str(result.get("pred_label")) == class_info_list[0]:
+                result["pred_hypernyms_class"] = class_info_list[2].strip(",")
         hparam_dic = {
             "file_pth": image_path,
-            "pred_class":  result.get("pred_class")
+            "pred_class":  result.get("pred_class"),
+            "pred_hypernyms_class": result.get("pred_hypernyms_class"),
         }
         metric_dic = {
             "pred_label": result.get("pred_label"),
@@ -38,15 +44,14 @@ def rebuild_dataset(dataset_dic, model):
 
 
 if __name__ == '__main__':
+    ####-----------------------------------------------
     # conformer
-    # config_file = '../configs/conformer/conformer-tiny-p16_8xb128_in1k_mine.py'
-    # # 权重文件参数路径
-    # checkpoint_file = '../checkpoints/conformer-tiny-p16_3rdparty_8xb128_in1k_20211206-f6860372.pth'
-    # conformer
-    # config_file = '../configs/conformer/conformer-tiny-p16_8xb128_in1k_mine.py'
-    # # 权重文件参数路径
-    # checkpoint_file = '../checkpoints/conformer-tiny-p16_3rdparty_8xb128_in1k_20211206-f6860372.pth'
+    config_file = '../configs/conformer/conformer-tiny-p16_8xb128_in1k_mine.py'
+    # 权重文件参数路径
+    checkpoint_file = '../checkpoints/conformer-tiny-p16_3rdparty_8xb128_in1k_20211206-f6860372.pth'
     # 设置设备为GPU 或者 device='cpu'
+    ####------------------------------------------------
+
     device = 'cuda:0'
     dataset_dic_train = {
         'image_root': '../data/COME15K/train/imgs_right/',

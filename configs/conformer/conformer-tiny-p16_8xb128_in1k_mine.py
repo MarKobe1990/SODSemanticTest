@@ -7,3 +7,9 @@ _base_ = [
 
 data = dict(samples_per_gpu=128)
 evaluation = dict(interval=1, metric='accuracy')
+# model settings
+model = dict(
+    head=dict(
+        topk=(1, 5)
+    )
+)
