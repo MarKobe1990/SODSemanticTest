@@ -20,8 +20,8 @@ class GetDataset:
         depth_path = self.depths[index]
         gt_path = self.gts[index]
         name = self.images[index].split('/')[-1]
-        if name.endswith('.jpg'):
-            name = name.split('.jpg')[0] + '.png'
+        # if name.endswith('.jpg'):
+        #     name = name.split('.jpg')[0] + '.png'
         img_array = mmcv.imread(image_path)
         return name, image_path, depth_path, gt_path, img_array
 
