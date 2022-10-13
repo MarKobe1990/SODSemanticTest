@@ -47,6 +47,49 @@ def rebuild_dataset(dataset_dic, model):
         # show_result_pyplot(model, image_path, result)
 
 
+def draw_max_rec_of_mask(gt_path, image_path):
+    gt_mask = cv2.imread(gt_path)
+    thresh = cv2.Canny(gt_mask, 128, 256)
+    contours, hierarchy = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    img_origin = cv2.imread(image_path)
+    img_copy = np.copy(img_origin)
+    x1 = []
+    y1 = []
+    x2 = []
+    y2 = []
+    for contour in contours:
+        # 找到边界坐标
+        x, y, w, h = cv2.boundingRect(contour)  # 计算点集最外面的矩形边界
+        # 因为这里面包含了，图像本身那个最大的框，所以用了if，来剔除那个图像本身的值。
+        # if x != 0 and y != 0 and w != gt_mask.shape[1] and h != gt_mask.shape[0]:
+        # if w != gt_mask.shape[1] and h != gt_mask.shape[0]:
+        # 左上角坐标和右下角坐标
+        # 如果执行里面的这个画框，就是分别来画的，
+        # cv2.rectangle(origin_gt, (x, y), (x + w, y + h), (0, 255, 0), 1)
+        x1.append(x)
+        y1.append(y)
+        x2.append(x + w)
+        y2.append(y + h)
+    x11 = min(x1)
+    y11 = min(y1)
+    x22 = max(x2)
+    y22 = max(y2)
+    white = [255, 255, 255]
+    for col in range(x11, x22):
+        for row in range(y11, y22):
+            gt_mask[row, col] = white
+    rectangle_mask_gray = cv2.cvtColor(gt_mask, cv2.COLOR_RGB2GRAY)
+    out_origin_size = cv2.bitwise_and(img_copy, img_copy, mask=rectangle_mask_gray)
+    return gt_mask, out_origin_size, img_copy[y11:y22, x11:x22]
+
+
+def mask_object_count_and_ratio(gt_path):
+    gt_mask = cv2.imread(gt_path)
+    retval, labels, stats, centroids = cv2.connectedComponentsWithStats(gt_mask, connectivity=8)
+    ratio_object = (1.0 - float(stats[0][4]) / float(gt_mask.size))
+    return retval, labels, stats, centroids, ratio_object
+
+
 def rebuild_masked_dataset(dataset_dic, model):
     data_set = GetDataset(dataset_dic.get("image_root"), dataset_dic.get("depth_root"),
                           dataset_dic.get("gt_root"))
@@ -56,37 +99,25 @@ def rebuild_masked_dataset(dataset_dic, model):
     dataset_writer = SummaryWriter(save_dir + "/log", comment="log")
     f = open("../myDocument/imageNet1k-class.txt")
     class_list = f.readlines()
+    gt_dir = osp.join(save_dir, 'data', 'gt')
+    mask_origin_dir = osp.join(save_dir, 'data', 'mask_origin')
+    mask_resize_dir = osp.join(save_dir, 'data', 'mask_resize')
+    merge_img_dir = osp.join(save_dir, 'data', 'merge_img')
+    if not osp.isdir(gt_dir):
+        os.makedirs(gt_dir)
+    if not osp.isdir(mask_origin_dir):
+        os.makedirs(mask_origin_dir)
+    if not osp.isdir(mask_resize_dir):
+        os.makedirs(mask_resize_dir)
     for idx in pbar:
         name, image_path, depth_path, gt_path, img_array = data_set.load_data(idx)
-        gt_mask = cv2.imread(gt_path)
-        thresh = cv2.Canny(gt_mask, 128, 256)
-        contours, hierarchy = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-        img_origin = cv2.imread(image_path)
-        img_copy = np.copy(img_origin)
-        for cnt in contours:
-            x, y, w, h = cv2.boundingRect(cnt)
-            # 绘制矩形
-            cv2.rectangle(img_copy, (x, y + h), (x + w, y), (0, 255, 255))
-            # 将最小内接矩形填充为白色
-            white = [255, 255, 255]
-            for col in range(x, x + w):
-                for row in range(y, y + h):
-                    gt_mask[row, col] = white
-        # x,y,w,h是掩膜的位置信息
-        # 1.直接从原图中截取图像，需要resize上采样为原图大小
-        # 2.获取掩膜，得到掩膜值为1的区域图像，这是在原图上操作的，所以不需上采样
-        rectangle_mask_gray = cv2.cvtColor(gt_mask, cv2.COLOR_RGB2GRAY)
-        out_origin_size = cv2.bitwise_and(img_origin, img_origin, mask=rectangle_mask_gray)  # 根据mask切割
-        # out_masked_size = cv2.bitwise_and(img_origin, mask=rectangle_mask_gray)  # 根据mask切割
-        gt_dir = osp.join(save_dir, 'data', 'gt')
-        mask_origin_dir = osp.join(save_dir, 'data', 'mask_origin')
-        if not osp.isdir(gt_dir):
-            os.makedirs(gt_dir)
-        if not osp.isdir(mask_origin_dir):
-            os.makedirs(mask_origin_dir)
+        # 根据mask切割
+        gt_mask, out_origin_size, img_copy_resize = draw_max_rec_of_mask(gt_path, image_path)
+        # 统计联通区域和显著性物体占比
+        retval, labels, stats, centroids, ratio_object = mask_object_count_and_ratio(gt_path)
         cv2.imwrite(osp.join(gt_dir, name[:-4] + '.png'), gt_mask)
         cv2.imwrite(osp.join(mask_origin_dir, name), out_origin_size)
-
+        cv2.imwrite(osp.join(mask_resize_dir, name), img_copy_resize)
         # result = inference_model(model, img_array)
         # for class_info in class_list:
         #     class_info_list = class_info.split(" ")

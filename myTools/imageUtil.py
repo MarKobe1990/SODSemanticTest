@@ -86,18 +86,57 @@ if __name__ == "__main__":
     # image_list = [image, image, image, image]  # 这里存放你的图片帧列表
     # big_image = merge_image(image_list, 2, 2)  # x_num为行数、y_num为列数，x与y的积为图像列表的长度
     # cv2.imwrite("merge_image.jpg", big_image)
-    src = './data/COME15K/test/COME-E/depths/COME_Easy_1007.png'
-    depth = cv2.imread(src, 0)
+    # src = './data/COME15K/test/COME-E/depths/COME_Easy_1007.png'
+    # depth = cv2.imread(src, 0)
     # depth_rev = inverse_color(depth)
     # eq_img = cv2.equalizeHist(depth)
     # clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(16, 16))
     # cl1 = clahe.apply(depth_rev)
     # depth_rev_enhance = cv2.convertScaleAbs(depth_rev, 6050, 1)
 
-    depth_resize=cv2.resize(depth, (360, 640))
-    cv2.imshow('depth', depth)
-    cv2.imshow('depth_resize', depth_resize)
+    # depth_resize=cv2.resize(depth, (360, 640))
+    # cv2.imshow('depth', depth)
+    # cv2.imshow('depth_resize', depth_resize)
     # cv2.imshow('depth_rev', depth_rev)
     # cv2.imshow('eq_img', eq_img)
     # cv2.imshow('cl1', cl1)
-    key = cv2.waitKey(0)
+    # key = cv2.waitKey(0)
+
+
+    gt_mask = cv2.imread('../COME_Train_15.png', 0)
+    # thresh = cv2.Canny(gt_mask, 128, 256)
+    # cv2.imshow('thresh', thresh)
+    # key = cv2.waitKey(0)
+    retval, labels, stats, centroids = cv2.connectedComponentsWithStats(gt_mask, connectivity=8)
+    print(retval)
+    ratio_object = (1.0 - float(stats[0][4])/float(gt_mask.size))
+
+    # contours, hierarchy = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    # x1 = []
+    # y1 = []
+    # x2 = []
+    # y2 = []
+    # for contour in contours:
+    #     # 找到边界坐标
+    #     x, y, w, h = cv2.boundingRect(contour)  # 计算点集最外面的矩形边界
+    #     print(x, y, w, h)
+    #     # 因为这里面包含了，图像本身那个最大的框，所以用了if，来剔除那个图像本身的值。
+    #     if x != 0 and y != 0 and w != gt_mask.shape[1] and h != gt_mask.shape[0]:
+    #         # 左上角坐标和右下角坐标
+    #         # 如果执行里面的这个画框，就是分别来画的，
+    #         # cv2.rectangle(origin_gt, (x, y), (x + w, y + h), (0, 255, 0), 1)
+    #         x1.append(x)
+    #         y1.append(y)
+    #         x2.append(x + w)
+    #         y2.append(y + h)
+    # x11 = min(x1)
+    # y11 = min(y1)
+    # x22 = max(x2)
+    # y22 = max(y2)
+    # white = [255, 255, 255]
+    # for col in range(x11, x22):
+    #     for row in range(y11, y22):
+    #         gt_mask[row, col] = white
+    # # rect = cv2.boundingRect(contours[1])
+    # cv2.imshow('gt_mask', gt_mask)
+    # key = cv2.waitKey(0)
