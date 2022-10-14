@@ -39,7 +39,10 @@ def merge_image_file_name(file_name_list, merge_img_name, save_dir, n_row, tag_d
             if tag_dic is not None:
                 i = 0
                 for key, value in tag_dic.items():
-                    text_img = '{0:<8} : {1:>6.4f}'.format(key, value)
+                    try:
+                        text_img = '{0:<8} : {1:>6.4f}'.format(key, value)
+                    except:
+                        text_img = '{0:<8} : {1:>6}'.format(key, value)
                     # !图片，添加的文字，左上角坐标，字体，字体大小，颜色，字体粗细
                     cv2.putText(img_np, text_img, (10, 25 + 20 * i), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 0, 0), 2)
                     i = i + 1
@@ -49,7 +52,30 @@ def merge_image_file_name(file_name_list, merge_img_name, save_dir, n_row, tag_d
     torch.device('cpu'))
     utils.save_image(image_grid, save_dir + merge_img_name)
 
-
+def merge_image_file_name_return_tensor(file_name_list, merge_img_name, save_dir, n_row, tag_dic=None):
+    img_tensor_list = []
+    shape = cv2.imread(file_name_list[0]).shape
+    for file_name in file_name_list:
+        img = cv2.imread(file_name)
+        if img.shape != shape:
+            img = cv2.resize(img, (shape[1], shape[0]))
+        img_np = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        if file_name == file_name_list[-1]:
+            if tag_dic is not None:
+                i = 0
+                for key, value in tag_dic.items():
+                    try:
+                        text_img = '{0:<8} : {1:>10.4f}'.format(key, value)
+                    except:
+                        text_img = '{0:<8} : {1:>10}'.format(key, value)
+                    # !图片，添加的文字，左上角坐标，字体，字体大小，颜色，字体粗细
+                    cv2.putText(img_np, text_img, (10, 25 + 20 * i), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 0, 0), 2)
+                    i = i + 1
+        img_tensor = transforms.ToTensor()(img_np).unsqueeze(dim=0)
+        img_tensor_list.append(img_tensor)
+    image_grid = utils.make_grid(torch.cat(img_tensor_list, dim=0), n_row, pad_value=255).clone().detach().to(
+    torch.device('cpu'))
+    return image_grid
 
 def look_img(img):
     '''opencv读入图像格式为BGR，matplotlib可视化格式为RGB，因此需将BGR转RGB'''
