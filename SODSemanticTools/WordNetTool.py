@@ -6,7 +6,7 @@ from collections import namedtuple
 
 
 class TreeNodeData:
-    def __init__(self, count,files_path_list):
+    def __init__(self, count, files_path_list):
         self.count = count,
         self.files_path_list = files_path_list
 
@@ -33,7 +33,7 @@ def build_tree(tree, paths_result_list, file_path):
         name = element.name().split('.')[0]
         if not tree.contains(name):
             # 为根节点
-            tree_node_data = TreeNodeData(count=int(1), files_path_list=[file_path])
+            tree_node_data = TreeNodeData(count=1, files_path_list=[file_path])
             if len(father_node_id_for_next_node) == 0 and idx == 0:
                 tree.create_node(tag=name, identifier=name, data=tree_node_data)
                 father_node_id_for_next_node = name
@@ -43,10 +43,13 @@ def build_tree(tree, paths_result_list, file_path):
                 father_node_id_for_next_node = name
         else:
             node_data = tree.get_node(nid=name).data
-            tree_node_data = TreeNodeData(count=node_data.count[0] + 1, files_path_list=node_data.files_path_list.append(file_path))
+            new_count = node_data.count[0] + 1
+            node_data.files_path_list.append(file_path)
+            tree_node_data = TreeNodeData(count=new_count, files_path_list=node_data.files_path_list)
             tree.update_node(nid=name, data=tree_node_data)
             father_node_id_for_next_node = name
-    tree.show()
+    # tree.show()
+
 
 
 if __name__ == '__main__':
@@ -54,4 +57,5 @@ if __name__ == '__main__':
     path_result_list = get_root_name("neck_brace")
     tree = Tree()
     build_tree(tree, path_result_list, '../123455')
-    build_tree(tree, result_list2, '../123455')
+    build_tree(tree, result_list2, '../1235')
+    tree.show(data_property="files_path_list")
