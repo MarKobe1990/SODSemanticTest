@@ -151,7 +151,7 @@ def rebuild_masked_dataset(dataset_dic, model):
             "pred_score": result_origin.get("pred_score"),
             "pred_label_salient_object": result_resize.get("pred_label"),
             "pred_score_salient_object": result_resize.get("pred_score"),
-            "object_count": retval-1,
+            "object_count": retval - 1,
             "object_ratio": ratio_object
         }
         dataset_writer.add_hparams(hparam_dic, metric_dic, name='log/' + image_path)
@@ -169,8 +169,8 @@ def rebuild_masked_dataset(dataset_dic, model):
             'same_flag': same_flag,
             'name': name[:-4]
         }
-        image_grid = utils.merge_image_file_name_return_tensor(merge_img_list, name[:-4] + '_merge.png', merge_img_dir, len(merge_img_list),
-                                    tag_dic)
+        image_grid = utils.merge_image_file_name_return_tensor(merge_img_list, name[:-4] + '_merge.png', merge_img_dir,
+                                                               len(merge_img_list), tag_dic)
         dataset_writer.add_image(dataset_dic["dataset_name"], image_grid, global_step=idx)
 
 
