@@ -3,11 +3,14 @@ import datetime
 import cv2
 import numpy as np
 from tensorboardX import SummaryWriter
+from treelib import Tree
+
 from myTools.data import GetDataset
 from mmcls.apis import init_model, inference_model, show_result_pyplot
 from tqdm import tqdm
 from matplotlib import pyplot as plt
 from torchvision import transforms
+from SODSemanticTools.WordNetTool import build_tree, get_object_hypernym_paths
 import myTools.imageUtil as utils
 import os.path as osp
 import os
@@ -112,6 +115,9 @@ def rebuild_masked_dataset(dataset_dic, model):
         os.makedirs(mask_resize_dir)
     if not osp.isdir(merge_img_dir):
         os.makedirs(merge_img_dir)
+    log_file_loc = save_dir + '/0_output_log.txt'
+    word_tree = Tree()
+    error_list = []
     for idx in pbar:
         name, image_path, depth_path, gt_path, img_array = data_set.load_data(idx)
         # 根据mask切割
@@ -154,6 +160,9 @@ def rebuild_masked_dataset(dataset_dic, model):
             "object_count": retval - 1,
             "object_ratio": ratio_object
         }
+
+        build_tree(result_resize.get("pred_class"), word_tree, image_path, error_list)
+
         dataset_writer.add_hparams(hparam_dic, metric_dic, name='log/' + image_path)
         merge_img_list = [image_path,
                           depth_path,
@@ -171,7 +180,19 @@ def rebuild_masked_dataset(dataset_dic, model):
         }
         image_grid = utils.merge_image_file_name_return_tensor(merge_img_list, name[:-4] + '_merge.png', merge_img_dir,
                                                                len(merge_img_list), tag_dic)
-        dataset_writer.add_image(dataset_dic["dataset_name"], image_grid, global_step=idx)
+        # dataset_writer.add_image(dataset_dic["dataset_name"], image_grid, global_step=idx)
+
+    if os.path.isfile(log_file_loc):
+        logger = open(log_file_loc, 'a')
+    else:
+        logger = open(log_file_loc, 'w')
+        # 写入测试
+        logger.write(error_list.__str__() + "\n")
+    logger.flush()
+    word_tree.save2file(save_dir + '/tree_note_count.txt', data_property='count')
+    word_tree.save2file(save_dir + '/tree_note.txt')
+    word_tree.to_graphviz(filename=save_dir + '/tree_graphviz')
+
 
 
 if __name__ == '__main__':

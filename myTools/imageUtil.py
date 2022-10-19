@@ -75,6 +75,7 @@ def merge_image_file_name_return_tensor(file_name_list, merge_img_name, save_dir
         img_tensor_list.append(img_tensor)
     image_grid = utils.make_grid(torch.cat(img_tensor_list, dim=0), n_row, pad_value=255).clone().detach().to(
     torch.device('cpu'))
+    utils.save_image(image_grid, save_dir + '/' + merge_img_name)
     return image_grid
 
 def look_img(img):
