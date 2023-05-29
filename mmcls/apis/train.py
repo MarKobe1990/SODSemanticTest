@@ -10,11 +10,11 @@ from mmcv.runner import (DistSamplerSeedHook, Fp16OptimizerHook,
 
 from mmcls.core import DistEvalHook, DistOptimizerHook, EvalHook
 from mmcls.datasets import build_dataloader, build_dataset
-from mmcls.utils import (get_root_logger, wrap_distributed_model,
-                         wrap_non_distributed_model)
+from mmcls.utils import (auto_select_device, get_root_logger,
+                         wrap_distributed_model, wrap_non_distributed_model)
 
 
-def init_random_seed(seed=None, device='cuda'):
+def init_random_seed(seed=None, device=None):
     """Initialize random seed.
 
     If the seed is not set, the seed will be automatically randomized,
@@ -30,7 +30,8 @@ def init_random_seed(seed=None, device='cuda'):
     """
     if seed is not None:
         return seed
-
+    if device is None:
+        device = auto_select_device()
     # Make sure all ranks share the same random seed to prevent
     # some potential bugs. Please refer to
     # https://github.com/open-mmlab/mmdetection/issues/6339
@@ -131,7 +132,6 @@ def train_model(model,
         model = wrap_distributed_model(
             model,
             cfg.device,
-            device_ids=[torch.cuda.current_device()],
             broadcast_buffers=False,
             find_unused_parameters=find_unused_parameters)
     else:
@@ -173,6 +173,10 @@ def train_model(model,
 
     # fp16 setting
     fp16_cfg = cfg.get('fp16', None)
+
+    if fp16_cfg is None and device == 'npu':
+        fp16_cfg = {'loss_scale': 'dynamic'}
+
     if fp16_cfg is not None:
         if device == 'ipu':
             from mmcv.device.ipu import IPUFp16OptimizerHook
